@@ -5,12 +5,6 @@
 
 namespace gt {
 
-	constexpr float Pi = 3.141592654f;
-	constexpr float HalfPi = Pi / 2.0f;
-	constexpr float Tau = Pi * 2.0f;
-	constexpr float Epsilon = 1e-5f;
-	constexpr float E = 2.718281828459045235360287f;
-
 	template <size_t N>
 	struct Mat {
 		static_assert(N >= 2 && N <= 4, "Invalid matrix size.");
