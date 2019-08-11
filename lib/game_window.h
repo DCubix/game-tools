@@ -52,6 +52,14 @@ namespace gt {
 
 		double currentTime() const;
 
+		bool keyPressed(u32 key) const;
+		bool keyReleased(u32 key) const;
+		bool keyHeld(u32 key) const;
+
+		bool mousePressed(u32 key) const;
+		bool mouseReleased(u32 key) const;
+		bool mouseHeld(u32 key) const;
+
 	private:
 		SDL_Window* m_window;
 		SDL_GLContext m_context;

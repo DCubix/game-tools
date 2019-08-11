@@ -210,4 +210,41 @@ namespace gt {
 
 		return ErrorNone;
 	}
+
+	bool GameWindow::keyPressed(u32 key) const {
+		auto pos = m_keyboard.find(key);
+		if (pos == m_keyboard.end()) return false;
+		return pos->second.pressed;
+	}
+
+	bool GameWindow::keyReleased(u32 key) const {
+		auto pos = m_keyboard.find(key);
+		if (pos == m_keyboard.end()) return false;
+		return pos->second.released;
+	}
+
+	bool GameWindow::keyHeld(u32 key) const {
+		auto pos = m_keyboard.find(key);
+		if (pos == m_keyboard.end()) return false;
+		return pos->second.held;
+	}
+
+	bool GameWindow::mousePressed(u32 key) const {
+		auto pos = m_mouse.find(key);
+		if (pos == m_mouse.end()) return false;
+		return pos->second.pressed;
+	}
+
+	bool GameWindow::mouseReleased(u32 key) const {
+		auto pos = m_mouse.find(key);
+		if (pos == m_mouse.end()) return false;
+		return pos->second.released;
+	}
+
+	bool GameWindow::mouseHeld(u32 key) const {
+		auto pos = m_mouse.find(key);
+		if (pos == m_mouse.end()) return false;
+		return pos->second.held;
+	}
+
 }
