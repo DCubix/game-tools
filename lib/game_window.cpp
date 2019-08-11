@@ -90,6 +90,8 @@ namespace gt {
 			return;
 		}
 
+		SDL_GL_MakeCurrent(m_window, m_context);
+
 		if (!gladLoadGLLoader(SDL_GL_GetProcAddress)) {
 			LogE(SDL_GetError());
 			cleanup();
@@ -122,7 +124,7 @@ namespace gt {
 		SDL_SetWindowTitle(m_window, title.c_str());
 	}
 
-	ErrorCode GameWindow::run() {
+	ErrorCode GameWindow::run(double frameRate) {
 		if (!m_window) {
 			cleanup();
 			return ErrorInvalidObject;
@@ -138,15 +140,23 @@ namespace gt {
 		SDL_Event evt;
 		bool running = true;
 
-		const double timeStep = 1.0 / 60.0;
-		double lastTime = currentTime(), accum = 0.0;
+		const double timeStep = 1.0 / frameRate;
+		double lastTime = currentTime(),
+				startTime = lastTime,
+				accum = 0.0;
 
-		while (running) {
+		do {
 			bool canRender = false;
 			double currTime = currentTime();
 			double delta = currTime - lastTime;
 			lastTime = currTime;
 			accum += delta;
+
+			if (currTime - startTime >= 1.0) {
+				m_frameRate = 1000.0f / float(m_frame+1);
+				m_frame = 0;
+				startTime += 1.0;
+			}
 
 			// Input Handling
 			while (SDL_PollEvent(&evt)) {
@@ -186,7 +196,6 @@ namespace gt {
 			while (accum >= timeStep) {
 				accum -= timeStep;
 				m_adapter->update(*this, float(timeStep));
-				canRender = true;
 
 				for (auto& [k, v] : m_keyboard) {
 					v.pressed = false;
@@ -197,13 +206,16 @@ namespace gt {
 					v.pressed = false;
 					v.released = false;
 				}
+
+				canRender = true;
 			}
 
 			if (canRender) {
 				m_adapter->render(*this);
 				SDL_GL_SwapWindow(m_window);
+				m_frame++;
 			}
-		}
+		} while (running);
 
 		m_adapter->destroy(*this);
 		cleanup();

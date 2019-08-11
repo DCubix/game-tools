@@ -35,11 +35,10 @@ namespace gt {
 			void set(const Matrix4& m, bool transpose = false);
 		};
 
-		using ShaderMap = std::unordered_map<ShaderType, GLuint>;
-		using ValueMap = std::unordered_map<std::string, GLuint>;
-
 		Shader() = default;
 		~Shader() = default;
+
+		Shader(GLuint id) : m_id(id) {}
 
 		Shader& create();
 		void destroy();
@@ -63,8 +62,7 @@ namespace gt {
 
 	private:
 		GLuint m_id{ 0 };
-		ShaderMap m_subShaders;
-		ValueMap m_attributes, m_uniforms, m_blockIndices;
+		std::unordered_map<std::string, GLint> m_attributes{}, m_uniforms{}, m_blockIndices{};
 	};
 }
 

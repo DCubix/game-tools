@@ -40,10 +40,8 @@ namespace gt {
 		return *this;
 	}
 
-	VertexArray& VertexArray::build() {
-		for (auto&& buf : m_buffers) buf.bind();
-		m_format.enable();
-		return *this;
+	void VertexArray::destroy() {
+		if (m_id) glDeleteVertexArrays(1, &m_id);
 	}
 
 	VertexArray& VertexArray::bind() {
@@ -56,13 +54,4 @@ namespace gt {
 		return *this;
 	}
 
-	VertexArray& VertexArray::add(const Buffer& buf) {
-		m_buffers.push_back(buf);
-		return *this;
-	}
-
-	VertexArray& VertexArray::format(VertexFormat format) {
-		m_format = format;
-		return *this;
-	}
 }

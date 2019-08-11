@@ -15,6 +15,7 @@
 #include <unordered_map>
 
 namespace gt {
+
 	enum ErrorCode {
 		ErrorNone = 0,
 		ErrorInvalidGameAdapter,
@@ -40,7 +41,7 @@ namespace gt {
 
 		GameWindow(GameAdapter* adapter, u32 width, u32 height);
 
-		ErrorCode run();
+		ErrorCode run(double frameRate = 60.0);
 
 		u32 width() const { return m_width; }
 		u32 height() const { return m_height; }
@@ -51,6 +52,7 @@ namespace gt {
 		const Vector2& mousePosition() const { return m_mousePosition; }
 
 		double currentTime() const;
+		float msPerFrame() const { return m_frameRate; }
 
 		bool keyPressed(u32 key) const;
 		bool keyReleased(u32 key) const;
@@ -67,6 +69,9 @@ namespace gt {
 		std::unique_ptr<GameAdapter> m_adapter;
 
 		u32 m_width, m_height;
+
+		float m_frameRate;
+		u32 m_frame;
 
 		struct State {
 			bool pressed, released, held;

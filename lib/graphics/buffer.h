@@ -70,6 +70,7 @@ namespace gt {
 		GLuint id() const { return m_id; }
 		BufferType type() const { return m_type; }
 		BufferUsage usage() const { return m_usage; }
+		u32 size() const { return m_size; }
 
 	private:
 		GLuint m_id{ 0 };
@@ -102,8 +103,9 @@ namespace gt {
 
 		VertexFormat() = default;
 		VertexFormat(size_t stride) : m_stride(stride) {}
+		~VertexFormat() = default;
 
-		VertexFormat& add(u8 size, DataType type, bool normalized = false) {
+		inline VertexFormat& add(u8 size, DataType type, bool normalized = false) {
 			Field field;
 			field.type = type;
 			field.size = size;
@@ -112,7 +114,7 @@ namespace gt {
 			return *this;
 		}
 
-		void enable() {
+		inline void enable() {
 			u32 off = 0, i = 0;
 			for (auto&& field : m_fields) {
 				glEnableVertexAttribArray(i);
@@ -122,7 +124,7 @@ namespace gt {
 			}
 		}
 
-		void disable() {
+		inline void disable() {
 			for (u32 i = 0; i < m_fields.size(); i++) {
 				glDisableVertexAttribArray(i);
 			}
@@ -151,21 +153,15 @@ namespace gt {
 	class VertexArray {
 	public:
 		VertexArray() = default;
-		~VertexArray();
+		~VertexArray() = default;
 
 		VertexArray& create();
-		VertexArray& build();
+		void destroy();
 		VertexArray& bind();
 		VertexArray& unbind();
 
-		VertexArray& add(const Buffer& buf);
-		VertexArray& format(VertexFormat format);
-
 	private:
 		GLuint m_id;
-
-		std::vector<Buffer> m_buffers;
-		VertexFormat m_format;
 	};
 }
 

@@ -57,9 +57,6 @@ public:
 #define LogI(...) LogPrint(Log::Info, __VA_ARGS__)
 #define LogW(...) LogPrint(Log::Warning, __VA_ARGS__)
 #define LogE(...) LogPrint(Log::Error, __VA_ARGS__)
-#define LogA(cond, ...) if (!(cond)) { \
-	LogPrint(Log::Assert, __VA_ARGS__); \
-	abort(); \
-}
+#define LogA(cond, ...) if (!(cond)) { LogPrint(Log::Assert, __VA_ARGS__); abort(); }
 
 #endif // TWEN_LOG_H
