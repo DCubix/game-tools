@@ -66,6 +66,10 @@ void main() {
 		m_indices.reserve(SpritesCount * 6);
 
 		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glFrontFace(GL_CCW);
 	}
 
 	SpriteBatch::~SpriteBatch() {
@@ -84,14 +88,14 @@ void main() {
 	}
 
 	void SpriteBatch::flush() {
-		if (!m_vertices.empty()) return;
-		m_lastTexture.bind(0);
+		if (m_vertices.empty()) return;
+		if (m_lastTexture.id()) m_lastTexture.bind(0);
 
 		m_vbo.bind().update(m_vertices, Buffer::DynamicDraw);
 		m_ibo.bind().update(m_indices, Buffer::DynamicDraw);
 
 		m_vao.bind();
-		glDrawElements(GL_TRIANGLES, m_vertices.size(), GL_UNSIGNED_INT, nullptr);
+		glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, nullptr);
 		m_vao.unbind();
 
 		m_vertices.clear();
@@ -108,7 +112,7 @@ void main() {
 	}
 
 	void SpriteBatch::setupMatrices() {
-		m_currentShader.get("uProjView").set(m_projection * m_view);
+		m_currentShader.get("uProjView").set(m_projection * m_view, true);
 		m_currentShader.get("uTexture").set(0);
 	}
 
@@ -136,12 +140,12 @@ void main() {
 		}
 	}
 
-	void SpriteBatch::switchTexture(Texture tex) {
+	void SpriteBatch::switchTexture(const Texture& tex) {
 		flush();
 		m_lastTexture = tex;
 	}
 
-	void SpriteBatch::draw(Texture texture, Vector2 position, float rotation, Vector2 origin, Vector2 scale, Vector4 uv) {
+	void SpriteBatch::draw(const Texture& texture, Vector2 position, float rotation, Vector2 origin, Vector2 scale, Vector4 uv) {
 		if (!m_drawing) flush();
 
 		if (m_lastTexture.id() != texture.id()) {
@@ -159,12 +163,10 @@ void main() {
 		float fx2 = m_lastTexture.width() - ox;
 		float fy2 = m_lastTexture.height() - oy;
 
-		if (!almostEqual(scale.x, 1.0f) || !almostEqual(scale.y, 1.0f)) {
-			fx *= scale.x;
-			fy *= scale.y;
-			fx2 *= scale.x;
-			fy2 *= scale.y;
-		}
+		fx *= scale.x;
+		fy *= scale.y;
+		fx2 *= scale.x;
+		fy2 *= scale.y;
 
 		const float p1x = fx;
 		const float p1y = fy;
@@ -234,7 +236,7 @@ void main() {
 		m_vertices.emplace_back(Vector2(x2, y2), Vector2(u1, v2), m_color);
 		m_vertices.emplace_back(Vector2(x3, y3), Vector2(u2, v2), m_color);
 		m_vertices.emplace_back(Vector2(x4, y4), Vector2(u2, v1), m_color);
-		m_indices.insert(m_indices.end(), { off + 0, off + 1, off + 2, off + 2, off + 3, off + 0 });
+		m_indices.insert(m_indices.end(), { off + 0, off + 1, off + 2, off + 0, off + 2, off + 3 });
 	}
 
 }

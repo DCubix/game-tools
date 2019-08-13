@@ -57,7 +57,7 @@ namespace gt {
 	public:
 
 		Texture() = default;
-		~Texture() = default;
+		virtual ~Texture() = default;
 
 		Texture& create(
 			TextureType type,

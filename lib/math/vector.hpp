@@ -5,20 +5,20 @@
 
 #define VEC_OP(op) \
 Vec<N> ret; \
-for (size_t i = 0; i < N; i++) ret[i] = a[i] op b[i]; \
+for (size_t i = 0; i < N; i++) { ret.data[i] = a.data[i] op b.data[i]; } \
 return ret;
 
 #define VEC_OP_S(op) \
 Vec<N> ret; \
-for (size_t i = 0; i < N; i++) ret[i] = a[i] op b; \
+for (size_t i = 0; i < N; i++) { ret.data[i] = a.data[i] op b; } \
 return ret;
 
 #define VEC_AOP(op) \
-for (size_t i = 0; i < N; i++) a[i] op##= b[i]; \
+for (size_t i = 0; i < N; i++) { a.data[i] op##= b.data[i]; } \
 return a;
 
 #define VEC_AOP_S(op) \
-for (size_t i = 0; i < N; i++) a[i] op##= b; \
+for (size_t i = 0; i < N; i++) { a.data[i] op##= b; } \
 return a;
 
 namespace gt {
@@ -29,26 +29,12 @@ namespace gt {
 		float data[N];
 	};
 
-	// Operators
-	template <size_t N> inline Vec<N> operator +(const Vec<N>& a, const Vec<N>& b) { VEC_OP(+) }
-	template <size_t N> inline Vec<N> operator -(const Vec<N>& a, const Vec<N>& b) { VEC_OP(-) }
-	template <size_t N> inline Vec<N> operator *(const Vec<N>& a, const Vec<N>& b) { VEC_OP(*) }
-	template <size_t N> inline Vec<N> operator *(const Vec<N>& a, float b) { VEC_OP_S(*) }
-	template <size_t N> inline Vec<N> operator /(const Vec<N>& a, float b) { VEC_OP_S(/) }
-
-	template <size_t N> inline Vec<N>& operator +=(Vec<N>& a, const Vec<N>& b) { VEC_AOP(+) }
-	template <size_t N> inline Vec<N>& operator -=(Vec<N>& a, const Vec<N>& b) { VEC_AOP(-) }
-	template <size_t N> inline Vec<N>& operator *=(Vec<N>& a, const Vec<N>& b) { VEC_AOP(*) }
-	template <size_t N> inline Vec<N>& operator *=(Vec<N>& a, float b) { VEC_AOP_S(*) }
-	template <size_t N> inline Vec<N>& operator /=(Vec<N>& a, float b) { VEC_AOP_S(/) }
-
 	// Specializations
 	template <>
 	struct Vec<2> {
 		union {
 			float data[2];
 			struct { float x, y; };
-			struct { float s, t; };
 		};
 
 		inline Vec(float x, float y) : x(x), y(y) {}
@@ -93,15 +79,24 @@ namespace gt {
 		inline float& operator [](unsigned int i) { return data[i]; }
 	};
 
+	// Operators
+	template <size_t N> inline Vec<N> operator +(const Vec<N>& a, const Vec<N>& b) { VEC_OP(+) }
+	template <size_t N> inline Vec<N> operator -(const Vec<N>& a, const Vec<N>& b) { VEC_OP(-) }
+	template <size_t N> inline Vec<N> operator *(const Vec<N>& a, const Vec<N>& b) { VEC_OP(*) }
+	template <size_t N> inline Vec<N> operator *(const Vec<N>& a, float b) { VEC_OP_S(*) }
+	template <size_t N> inline Vec<N> operator /(const Vec<N>& a, float b) { VEC_OP_S(/) }
+
+	template <size_t N> inline Vec<N>& operator +=(Vec<N>& a, const Vec<N>& b) { VEC_AOP(+) }
+	template <size_t N> inline Vec<N>& operator -=(Vec<N>& a, const Vec<N>& b) { VEC_AOP(-) }
+	template <size_t N> inline Vec<N>& operator *=(Vec<N>& a, const Vec<N>& b) { VEC_AOP(*) }
+	template <size_t N> inline Vec<N>& operator *=(Vec<N>& a, float b) { VEC_AOP_S(*) }
+	template <size_t N> inline Vec<N>& operator /=(Vec<N>& a, float b) { VEC_AOP_S(/) }
+
 	template <size_t N>
 	inline float dot(const Vec<N>& a, const Vec<N>& b) {
-		if constexpr (N == 2) {
-			return a.data[0] * b.data[0] + a.data[1] * b.data[1];
-		} else if constexpr (N == 3) {
-			return a.data[0] * b.data[0] + a.data[1] * b.data[1] + a.data[2] * b.data[2];
-		} else if constexpr (N == 4) {
-			return a.data[0] * b.data[0] + a.data[1] * b.data[1] + a.data[2] * b.data[2] + a.data[3] * b.data[3];
-		}
+		float sum = 0.0f;
+		for (size_t i = 0; i < N; i++) sum += a[i] * b[i];
+		return sum;
 	}
 
 	template <size_t N>

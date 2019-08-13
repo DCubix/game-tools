@@ -10,7 +10,7 @@
 #define SafeDel(x) if (x) { delete x; x = nullptr; }
 
 namespace gt {
-	constexpr u32 SpritesCount = 20000;
+	constexpr u32 SpritesCount = 30000;
 
 	class SpriteBatch {
 	public:
@@ -19,7 +19,7 @@ namespace gt {
 		~SpriteBatch();
 
 		void draw(
-			Texture texture,
+			const Texture& texture,
 			Vector2 position,
 			float rotation = 0.0f,
 			Vector2 origin = Vector2(0.0f),
@@ -70,7 +70,7 @@ namespace gt {
 		bool m_drawing{ false };
 
 		void setupMatrices();
-		void switchTexture(Texture tex);
+		void switchTexture(const Texture& tex);
 	};
 }
 

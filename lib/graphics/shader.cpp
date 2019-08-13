@@ -75,9 +75,8 @@ namespace gt {
 	}
 
 	i32 Shader::getUniformIndex(const std::string& name) {
-		// auto pos = m_uniforms.find(name);
-		// if (pos == m_uniforms.end()) {
-		if (m_uniforms.count(name) == 0) {
+		auto pos = m_uniforms.find(name);
+		if (pos == m_uniforms.end()) {
 			i32 i = glGetProgramResourceLocation(m_id, GL_UNIFORM, name.c_str());
 			if (i != -1) {
 				m_uniforms[name] = i;
@@ -85,7 +84,6 @@ namespace gt {
 				return -1;
 			}
 		}
-		// return pos->second;
 		return m_uniforms[name];
 	}
 
@@ -99,7 +97,7 @@ namespace gt {
 				return -1;
 			}
 		}
-		return pos->second;
+		return m_attributes[name];
 	}
 
 	void Shader::uniformBlockBinding(u32 blockIndex, u32 binding) {

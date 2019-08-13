@@ -11,32 +11,6 @@ namespace gt {
 		Vec<N> m[N];
 	};
 
-	template <size_t N> inline Mat<N> operator *(const Mat<N>& a, float b) {
-		Mat<N> ret;
-		for (size_t i = 0; i < N * N; i++) ret.m[i] = a.m[i] * b;
-		return ret;
-	}
-
-	template <size_t N> inline Mat<N> operator *(const Mat<N>& a, const Mat<N>& b) {
-		Mat<N> tb = transpose(b);
-		Mat<N> ret;
-		for (size_t r = 0; r < N; r++) {
-			for (size_t c = 0; c < N; c++) {
-				size_t i = c + r * N;
-				ret.m[i] = dot(a.m[r], tb.m[c]);
-			}
-		}
-		return ret;
-	}
-
-	template <size_t N> inline Vec<N> operator *(const Mat<N>& a, const Vec<N>& b) {
-		Vec<N> ret;
-		for (size_t i = 0; i < N; i++) {
-			ret.data[i] = dot(a.m[i], b);
-		}
-		return ret;
-	}
-
 	template <>
 	struct Mat<2> {
 		union {
@@ -107,9 +81,9 @@ namespace gt {
 			m[2] = r2;
 			m[3] = r3;
 		}
-		inline Mat(const Mat<3>& a) : Mat() {
-			for (size_t j = 0; j < 3; j++) {
-				for (size_t i = 0; i < 3; i++) {
+		inline Mat(const Mat<4>& a) : Mat() {
+			for (size_t j = 0; j < 4; j++) {
+				for (size_t i = 0; i < 4; i++) {
 					m[j][i] = a[j][i];
 				}
 			}
@@ -119,11 +93,38 @@ namespace gt {
 		inline Vec<4>& operator [](unsigned int i) { return m[i]; }
 	};
 
+	template <size_t N> inline Mat<N> operator *(const Mat<N>& a, float b) {
+		Mat<N> ret;
+		for (size_t i = 0; i < N; i++) ret.m[i] = a[i] * b;
+		return ret;
+	}
+
+	template <size_t N> inline Mat<N> operator *(const Mat<N>& a, const Mat<N>& b) {
+		Mat<N> ret;
+		for (size_t r = 0; r < N; r++) {
+			for (size_t c = 0; c < N; c++) {
+				ret[r][c] = 0.0f;
+				for (size_t k = 0; k < N; k++) {
+					ret[r][c] += a[r][k] * b[k][c];
+				}
+			}
+		}
+		return ret;
+	}
+
+	template <size_t N> inline Vec<N> operator *(const Mat<N>& a, const Vec<N>& b) {
+		Vec<N> ret;
+		for (size_t i = 0; i < N; i++) {
+			ret[i] = dot(a[i], b);
+		}
+		return ret;
+	}
+
 	template <size_t N> inline Mat<N> transpose(const Mat<N>& a) {
 		Mat<N> ret;
 		for (size_t r = 0; r < N; r++) {
 			for (size_t c = 0; c < N; c++) {
-				ret.m[r][c] = a.m[c][r];
+				ret[r][c] = a[c][r];
 			}
 		}
 		return ret;
