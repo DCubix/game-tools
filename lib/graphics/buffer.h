@@ -118,7 +118,7 @@ namespace gt {
 			u32 off = 0, i = 0;
 			for (auto&& field : m_fields) {
 				glEnableVertexAttribArray(i);
-				glVertexAttribPointer(i, field.size, field.type, field.normalized, m_stride, (void*)off);
+				glVertexAttribPointer(i, field.size, field.type, field.normalized, m_stride, reinterpret_cast<void*>(off));
 				i++;
 				off += getDataTypeSize(field.type) * field.size;
 			}

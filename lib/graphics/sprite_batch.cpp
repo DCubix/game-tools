@@ -1,28 +1,6 @@
 #include "sprite_batch.h"
 
 namespace gt {
-	static const std::string VS = R"(#version 430 core
-layout (location = 0) in vec2 vPosition;
-layout (location = 1) in vec2 vTexCoord;
-layout (location = 2) in vec4 vColor;
-
-uniform mat4 uProjView = mat4(1.0);
-
-out DATA {
-	vec4 color;
-	vec4 position;
-	vec2 uv;
-} VS;
-
-void main() {
-	vec4 pos = vec4(vPosition, 0.0, 1.0);
-	gl_Position = uProjView * pos;
-
-	VS.color = vColor;
-	VS.position = pos;
-	VS.uv = vTexCoord;
-}
-)";
 
 	static const std::string FS = R"(#version 430 core
 out vec4 fragColor;
@@ -31,6 +9,7 @@ in DATA {
 	vec4 color;
 	vec4 position;
 	vec2 uv;
+	mat3 tbn;
 } VS;
 
 uniform sampler2D uTexture;
@@ -46,7 +25,8 @@ void main() {
 		VertexFormat fmt = VertexFormat(sizeof(Vertex))
 			.add(2, DataType::TypeFloat)
 			.add(2, DataType::TypeFloat)
-			.add(4, DataType::TypeFloat);
+			.add(4, DataType::TypeFloat)
+			.add(3, DataType::TypeFloat);
 		m_vao = VertexArray().create().bind();
 		m_vbo = Buffer().create(Buffer::ArrayBuffer).bind();
 		fmt.enable();
@@ -54,7 +34,7 @@ void main() {
 		m_vao.unbind();
 
 		m_defaultShader = Shader().create()
-			.add(VS, Shader::VertexShader)
+			.add(SBVertexShader, Shader::VertexShader)
 			.add(FS, Shader::FragmentShader)
 			.link();
 		m_currentShader = Shader(m_defaultShader.id());
@@ -67,8 +47,6 @@ void main() {
 
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glFrontFace(GL_CCW);
 	}
 
@@ -94,6 +72,14 @@ void main() {
 		m_vbo.bind().update(m_vertices, Buffer::DynamicDraw);
 		m_ibo.bind().update(m_indices, Buffer::DynamicDraw);
 
+		if (!m_blending) {
+			glDisable(GL_BLEND);
+		} else {
+			glEnable(GL_BLEND);
+			if (m_srcFuncColor != -1)
+				glBlendFuncSeparate(m_srcFuncColor, m_dstFuncColor, m_srcFuncAlpha, m_dstFuncAlpha);
+		}
+
 		m_vao.bind();
 		glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, nullptr);
 		m_vao.unbind();
@@ -109,6 +95,10 @@ void main() {
 		m_drawing = false;
 		glDepthMask(true);
 		m_currentShader.unbind();
+
+		if (m_blending) {
+			glDisable(GL_BLEND);
+		}
 	}
 
 	void SpriteBatch::setupMatrices() {
@@ -156,8 +146,8 @@ void main() {
 
 		const float ox = origin.x * m_lastTexture.width();
 		const float oy = origin.y * m_lastTexture.height();
-		const float wx = position.x + ox;
-		const float wy = position.y + oy;
+		const float wx = position.x;
+		const float wy = position.y;
 		float fx = -ox;
 		float fy = -oy;
 		float fx2 = m_lastTexture.width() - ox;
@@ -187,34 +177,20 @@ void main() {
 		float y4;
 
 		// rotate
-		if (rotation != 0) {
-			const float cos = std::cos(rotation);
-			const float sin = std::sin(rotation);
+		const float cos = std::cos(rotation);
+		const float sin = std::sin(rotation);
 
-			x1 = cos * p1x - sin * p1y;
-			y1 = sin * p1x + cos * p1y;
+		x1 = cos * p1x - sin * p1y;
+		y1 = sin * p1x + cos * p1y;
 
-			x2 = cos * p2x - sin * p2y;
-			y2 = sin * p2x + cos * p2y;
+		x2 = cos * p2x - sin * p2y;
+		y2 = sin * p2x + cos * p2y;
 
-			x3 = cos * p3x - sin * p3y;
-			y3 = sin * p3x + cos * p3y;
+		x3 = cos * p3x - sin * p3y;
+		y3 = sin * p3x + cos * p3y;
 
-			x4 = x1 + (x3 - x2);
-			y4 = y3 - (y2 - y1);
-		} else {
-			x1 = p1x;
-			y1 = p1y;
-
-			x2 = p2x;
-			y2 = p2y;
-
-			x3 = p3x;
-			y3 = p3y;
-
-			x4 = p4x;
-			y4 = p4y;
-		}
+		x4 = x1 + (x3 - x2);
+		y4 = y3 - (y2 - y1);
 
 		x1 += wx;
 		y1 += wy;
@@ -232,11 +208,38 @@ void main() {
 
 		u32 off = m_vertices.size();
 
-		m_vertices.emplace_back(Vector2(x1, y1), Vector2(u1, v1), m_color);
-		m_vertices.emplace_back(Vector2(x2, y2), Vector2(u1, v2), m_color);
-		m_vertices.emplace_back(Vector2(x3, y3), Vector2(u2, v2), m_color);
-		m_vertices.emplace_back(Vector2(x4, y4), Vector2(u2, v1), m_color);
+		const Vector2 dir(cos, sin);
+
+		m_vertices.emplace_back(Vector2(x1, y1), Vector2(u1, v1), m_color, Vector3(dir.x, dir.y, 0.0f));
+		m_vertices.emplace_back(Vector2(x2, y2), Vector2(u1, v2), m_color, Vector3(dir.x, dir.y, 0.0f));
+		m_vertices.emplace_back(Vector2(x3, y3), Vector2(u2, v2), m_color, Vector3(dir.x, dir.y, 0.0f));
+		m_vertices.emplace_back(Vector2(x4, y4), Vector2(u2, v1), m_color, Vector3(dir.x, dir.y, 0.0f));
 		m_indices.insert(m_indices.end(), { off + 0, off + 1, off + 2, off + 0, off + 2, off + 3 });
+	}
+
+	void SpriteBatch::blendFunctionSeparate(GLenum src, GLenum dst, GLenum srcAlpha, GLenum dstAlpha) {
+		if (m_srcFuncColor == src && m_dstFuncColor == dst && m_srcFuncAlpha == srcAlpha && m_dstFuncAlpha == dstAlpha) return;
+		flush();
+		m_srcFuncColor = src;
+		m_dstFuncColor = dst;
+		m_srcFuncAlpha = srcAlpha;
+		m_dstFuncAlpha = dstAlpha;
+	}
+
+	void SpriteBatch::blendFunction(GLenum src, GLenum dst) {
+		blendFunctionSeparate(src, dst, src, dst);
+	}
+
+	void SpriteBatch::enableBlending() {
+		if (m_blending) return;
+		flush();
+		m_blending = true;
+	}
+
+	void SpriteBatch::disableBlending() {
+		if (!m_blending) return;
+		flush();
+		m_blending = false;
 	}
 
 }
