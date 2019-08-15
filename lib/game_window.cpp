@@ -92,15 +92,15 @@ namespace gt {
 
 		SDL_GL_MakeCurrent(m_window, m_context);
 
-		if (!gladLoadGLLoader(SDL_GL_GetProcAddress)) {
-			LogE(SDL_GetError());
+		if (!gladLoadGL()) {
+			LogE("Failed to load OpenGL.");
 			cleanup();
 			return;
 		}
 
 		LogI("Created a ", width, "x", height, " window.");
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && glad_glDebugMessageCallback
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 		glDebugMessageCallback(DebugCallback, 0);
 #endif

@@ -77,7 +77,11 @@ namespace gt {
 	i32 Shader::getUniformIndex(const std::string& name) {
 		auto pos = m_uniforms.find(name);
 		if (pos == m_uniforms.end()) {
-			i32 i = glGetProgramResourceLocation(m_id, GL_UNIFORM, name.c_str());
+			i32 i;
+			if (glad_glGetProgramResourceLocation)
+				i = glGetProgramResourceLocation(m_id, GL_UNIFORM, name.c_str());
+			else
+				i = glGetUniformLocation(m_id, name.c_str());
 			if (i != -1) {
 				m_uniforms[name] = i;
 			} else {

@@ -18,12 +18,5 @@ find_package(SDL2 CONFIG REQUIRED)
 if (NOT UNIX)
 	target_link_libraries(${PROJECT_NAME} PRIVATE SDL2)
 else()
-	target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2)
-endif()
-
-if (CMAKE_DL_LIBS)
-	target_link_libraries(${PROJECT_NAME}
-		${CMAKE_DL_LIBS}
-		pthread
-	)
+	target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2 ${CMAKE_DL_LIBS} pthread)
 endif()
