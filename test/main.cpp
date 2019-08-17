@@ -26,14 +26,16 @@ uniform sampler2D uTexture;
 void main() {
 	const vec3 V = vec3(0.0, 0.0, 1.0);
 	const vec3 L = vec3(1.0, 1.0, -1.0);
-	vec4 n = texture(uTexture, VS.uv);
+
+	float b = (1.0 - VS.color.a) * 9.0;
+	vec4 n = texture(uTexture, VS.uv, b);
 	vec3 nrm = normalize(VS.tbn * (n.xyz * 2.0 - 1.0));
 
 	float rim = clamp(dot(nrm, V), 0.0, 1.0);
-	rim = smoothstep(0.4, 1.0, rim);
+	rim = smoothstep(0.3, 1.0, rim);
 
 	vec3 col = (1.0 - rim) * VS.color.rgb;
-	col = clamp(col * n.rgb, 0.0, 1.0);
+	col = clamp(col * n.rgb + col, 0.0, 1.0);
 	fragColor = vec4(col * VS.color.a, 1.0) * n.a;
 }
 )";
@@ -45,8 +47,11 @@ float rnd() {
 struct Object {
 	Vector2 pos, vel, acel;
 	Vector3 color;
-	float life, maxLife, size;
+	float life, maxLife, size, dim;
 };
+
+constexpr float circleScale = 0.1f;
+constexpr float massFactor = 0.02f;
 
 class Game : public GameAdapter {
 public:
@@ -71,6 +76,8 @@ public:
 			.add(FS, Shader::FragmentShader)
 			.link();
 		sb->shader(normals);
+
+		srand(int(gw.currentTime() * 1000.0));
 	}
 
 	float lerpf(float a, float b, float t) {
@@ -85,9 +92,11 @@ public:
 		sb->enableBlending();
 		sb->blendFunction(GL_ONE, GL_ONE);
 		for (auto&& g : objects) {
-			float t = g.life / g.maxLife;
-			sb->color(Vector4(g.color.x, g.color.y, g.color.z, t));
-			sb->draw(tex, g.pos, 0.0f, Vector2(0.5f), Vector2(0.25f * g.size));
+			float l = g.life;
+			float t = l <= 1.0f ? l : 1.0f;
+			float d = g.dim * t;
+			sb->color(Vector4(g.color.x * d, g.color.y * d, g.color.z * d, t));
+			sb->draw(tex, g.pos, 0.0f, Vector2(0.5f), Vector2(circleScale * g.size));
 		}
 		sb->end();
 	}
@@ -101,18 +110,20 @@ public:
 		);
 
 		if (gw.mouseHeld(1) && objects.size() < SpritesCount) {
-			Object g{};
-			float a = rnd() * Tau;
-			float f = 20.0f + rnd() * 50.0f;
-			g.pos = gw.mousePosition();
-			g.maxLife = 4.0f + rnd() * 6.0f;
-			g.size = 1.0f + rnd() * 2.0f;
-			g.life = g.maxLife;
-			g.color.x = 0.2f + rnd();
-			g.color.y = 0.2f + rnd();
-			g.color.z = 0.2f + rnd();
-			g.acel = Vector2(f * std::cos(a), f * std::sin(a));
-			objects.push_back(g);
+			for (u32 i = 0; i < 10; i++) {
+				Object g{};
+				float a = rnd() * Tau;
+				float f = 200.0f + rnd() * 300.0f;
+				g.pos = gw.mousePosition();
+				g.maxLife = 10.0f + rnd() * 20.0f;
+				g.size = 1.0f + rnd() * 2.0f;
+				g.life = g.maxLife;
+				g.color.x = 0.4f + rnd() * 0.6f;
+				g.color.y = 0.4f + rnd() * 0.6f;
+				g.color.z = 0.4f + rnd() * 0.6f;
+				g.acel = Vector2(f * std::cos(a), f * std::sin(a));
+				objects.push_back(g);
+			}
 		}
 
 		if (gw.mouseHeld(3)) {
@@ -120,28 +131,80 @@ public:
 				auto&& g = objects[i];
 				Vector2 v = (gw.mousePosition() - g.pos);
 				if (length(v) < 80.0f) {
-					g.vel -= normalize(v) * 10.0f;
+					g.vel -= normalize(v) * 20.0f;
 				}
 			}
 		}
 
+		std::vector<std::pair<Object*, Object*>> colliding;
 		std::vector<size_t> rem;
 		for (size_t i = 0; i < objects.size(); i++) {
 			auto&& g = objects[i];
-			g.vel += g.acel;
+
+			g.vel += g.acel * dt;
 			g.pos += g.vel * dt;
+
+			g.dim = 0.2f + (std::sin(g.life * 2.0f) * 0.5f + 0.5f) * 0.8f;
+
 			if (g.pos.x >= gw.width() || g.pos.x <= 0.0f) {
 				g.vel.x *= -1.0f;
 			}
 			if (g.pos.y >= gw.height() || g.pos.y <= 0.0f) {
 				g.vel.y *= -1.0f;
 			}
-			g.acel *= 0.5f;
-			g.vel *= 0.99f;
-			g.life -= dt;
-			if (g.life <= 0.5f) {
+
+			for (size_t j = 0; j < objects.size(); j++) {
+				if (i == j) continue;
+
+				auto& h = objects[j];
+				float gR = (g.size * circleScale) * tex.width() * 0.5f;
+				float hR = (h.size * circleScale) * tex.width() * 0.5f;
+				float r = hR + gR;
+				Vector2 vec = g.pos - h.pos;
+				float d = lengthSqr(vec);
+				if (std::abs(d) <= r * r) {
+					float dist = std::sqrt(d);
+					float overlap = (dist - gR - hR) * 0.5f;
+					g.pos -= (vec / dist) * overlap;
+					h.pos += (vec / dist) * overlap;
+
+					colliding.push_back({ &g, &h });
+				}
+			}
+
+			if (g.life <= 0.0f) {
 				rem.push_back(i);
 			}
+
+			g.acel *= 0.8f;
+			g.vel *= 0.99f;
+			g.life -= dt;
+		}
+
+		for (auto [a, b] : colliding) {
+			Object& g = *a;
+			Object& h = *b;
+
+			float massG = g.size * massFactor;
+			float massH = h.size * massFactor;
+
+			Vector2 vec = h.pos - g.pos;
+			float dist = length(vec);
+
+			Vector2 n = vec / dist;
+			Vector2 t = Vector2(-n.y, n.x);
+
+			float dptG = dot(g.vel, t);
+			float dptH = dot(h.vel, t);
+
+			float dpnG = dot(g.vel, n);
+			float dpnH = dot(h.vel, n);
+
+			float m1 = (dpnG * (massG - massH) + 2.0f * massH * dpnH) / (massG + massH);
+			float m2 = (dpnH * (massH - massG) + 2.0f * massG * dpnG) / (massG + massH);
+
+			g.vel = t * dptG + n * m1;
+			h.vel = t * dptH + n * m2;
 		}
 
 		std::sort(rem.begin(), rem.end());
