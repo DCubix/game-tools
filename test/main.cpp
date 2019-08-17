@@ -24,10 +24,17 @@ in DATA {
 uniform sampler2D uTexture;
 
 void main() {
+	const vec3 V = vec3(0.0, 0.0, 1.0);
+	const vec3 L = vec3(1.0, 1.0, -1.0);
 	vec4 n = texture(uTexture, VS.uv);
 	vec3 nrm = normalize(VS.tbn * (n.xyz * 2.0 - 1.0));
-	float nl = clamp(dot(nrm, vec3(1.0, -1.0, 0.5)), 0.0, 1.0) + 0.2;
-	fragColor = vec4(vec3(nl * VS.color.a), 1.0) * n.a;
+
+	float rim = clamp(dot(nrm, V), 0.0, 1.0);
+	rim = smoothstep(0.4, 1.0, rim);
+
+	vec3 col = (1.0 - rim) * VS.color.rgb;
+	col = clamp(col * n.rgb, 0.0, 1.0);
+	fragColor = vec4(col * VS.color.a, 1.0) * n.a;
 }
 )";
 
@@ -37,7 +44,8 @@ float rnd() {
 
 struct Object {
 	Vector2 pos, vel, acel;
-	float life, maxLife;
+	Vector3 color;
+	float life, maxLife, size;
 };
 
 class Game : public GameAdapter {
@@ -46,7 +54,7 @@ public:
 		sb = std::unique_ptr<SpriteBatch>(new SpriteBatch(gw.width(), gw.height()));
 
 		i32 w, h, comp;
-		u8* data = stbi_load("cube.png", &w, &h, &comp, 4);
+		u8* data = stbi_load("ball.png", &w, &h, &comp, 4);
 		if (data) {
 			tex.create(TextureType::Texture2D, Format::RGBA, w, h).bind()
 				.filter(TextureFilter::Linear, TextureFilter::LinearMipMapLinear)
@@ -70,7 +78,7 @@ public:
 	}
 
 	void render(GameWindow& gw) {
-		glClearColor(0.0f, 0.2f, 0.6f, 1.0f);
+		glClearColor(0.0f, 0.05f, 0.2f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		sb->begin();
@@ -78,8 +86,8 @@ public:
 		sb->blendFunction(GL_ONE, GL_ONE);
 		for (auto&& g : objects) {
 			float t = g.life / g.maxLife;
-			sb->color(Vector4(1.0f, 1.0f, 1.0f, t));
-			sb->draw(tex, g.pos, 0.0f, Vector2(0.5f), Vector2(0.25f));
+			sb->color(Vector4(g.color.x, g.color.y, g.color.z, t));
+			sb->draw(tex, g.pos, 0.0f, Vector2(0.5f), Vector2(0.25f * g.size));
 		}
 		sb->end();
 	}
@@ -98,7 +106,11 @@ public:
 			float f = 20.0f + rnd() * 50.0f;
 			g.pos = gw.mousePosition();
 			g.maxLife = 4.0f + rnd() * 6.0f;
+			g.size = 1.0f + rnd() * 2.0f;
 			g.life = g.maxLife;
+			g.color.x = 0.2f + rnd();
+			g.color.y = 0.2f + rnd();
+			g.color.z = 0.2f + rnd();
 			g.acel = Vector2(f * std::cos(a), f * std::sin(a));
 			objects.push_back(g);
 		}
@@ -127,7 +139,7 @@ public:
 			g.acel *= 0.5f;
 			g.vel *= 0.99f;
 			g.life -= dt;
-			if (g.life <= 0.0f) {
+			if (g.life <= 0.5f) {
 				rem.push_back(i);
 			}
 		}
