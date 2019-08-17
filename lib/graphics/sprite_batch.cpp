@@ -144,14 +144,16 @@ void main() {
 			flush();
 		}
 
-		const float ox = origin.x * m_lastTexture.width();
-		const float oy = origin.y * m_lastTexture.height();
+		const float tw = m_lastTexture.width() * uv.z;
+		const float th = m_lastTexture.height() * uv.w;
+		const float ox = origin.x * tw;
+		const float oy = origin.y * th;
 		const float wx = position.x;
 		const float wy = position.y;
 		float fx = -ox;
 		float fy = -oy;
-		float fx2 = m_lastTexture.width() - ox;
-		float fy2 = m_lastTexture.height() - oy;
+		float fx2 = tw - ox;
+		float fy2 = th - oy;
 
 		fx *= scale.x;
 		fy *= scale.y;
@@ -208,12 +210,12 @@ void main() {
 
 		u32 off = m_vertices.size();
 
-		const Vector2 dir(cos, sin);
+		const Vector3 tangent(cos, sin, 0.0f);
 
-		m_vertices.emplace_back(Vector2(x1, y1), Vector2(u1, v1), m_color, Vector3(dir.x, dir.y, 0.0f));
-		m_vertices.emplace_back(Vector2(x2, y2), Vector2(u1, v2), m_color, Vector3(dir.x, dir.y, 0.0f));
-		m_vertices.emplace_back(Vector2(x3, y3), Vector2(u2, v2), m_color, Vector3(dir.x, dir.y, 0.0f));
-		m_vertices.emplace_back(Vector2(x4, y4), Vector2(u2, v1), m_color, Vector3(dir.x, dir.y, 0.0f));
+		m_vertices.emplace_back(Vector2(x1, y1), Vector2(u1, v1), m_color, tangent);
+		m_vertices.emplace_back(Vector2(x2, y2), Vector2(u1, v2), m_color, tangent);
+		m_vertices.emplace_back(Vector2(x3, y3), Vector2(u2, v2), m_color, tangent);
+		m_vertices.emplace_back(Vector2(x4, y4), Vector2(u2, v1), m_color, tangent);
 		m_indices.insert(m_indices.end(), { off + 0, off + 1, off + 2, off + 0, off + 2, off + 3 });
 	}
 
