@@ -27,8 +27,7 @@ void main() {
 	const vec3 V = vec3(0.0, 0.0, 1.0);
 	const vec3 L = vec3(1.0, 1.0, -1.0);
 
-	float b = (1.0 - VS.color.a) * 9.0;
-	vec4 n = texture(uTexture, VS.uv, b);
+	vec4 n = texture(uTexture, VS.uv);
 	vec3 nrm = normalize(VS.tbn * (n.xyz * 2.0 - 1.0));
 
 	float rim = clamp(dot(nrm, V), 0.0, 1.0);
@@ -48,9 +47,12 @@ struct Object {
 	Vector2 pos, vel, acel;
 	Vector3 color;
 	float life, maxLife, size, dim;
+
+	float popTime;
+	int frame;
 };
 
-constexpr float circleScale = 0.1f;
+constexpr float circleScale = 0.2f;
 constexpr float massFactor = 0.02f;
 
 class Game : public GameAdapter {
@@ -88,15 +90,17 @@ public:
 		glClearColor(0.0f, 0.05f, 0.2f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		const float tw = 1.0f / 15;
+
 		sb->begin();
 		sb->enableBlending();
 		sb->blendFunction(GL_ONE, GL_ONE);
 		for (auto&& g : objects) {
-			float l = g.life;
-			float t = l <= 1.0f ? l : 1.0f;
-			float d = g.dim * t;
-			sb->color(Vector4(g.color.x * d, g.color.y * d, g.color.z * d, t));
-			sb->draw(tex, g.pos, 0.0f, Vector2(0.5f), Vector2(circleScale * g.size));
+			float d = g.dim;
+			float tx = (g.frame % 15) * tw;
+
+			sb->color(Vector4(g.color.x * d, g.color.y * d, g.color.z * d, 1.0f));
+			sb->draw(tex, g.pos, 0.0f, Vector2(0.5f), Vector2(circleScale * g.size), Vector4(tx, 0.0f, tw, 1.0f));
 		}
 		sb->end();
 	}
@@ -114,6 +118,8 @@ public:
 				Object g{};
 				float a = rnd() * Tau;
 				float f = 200.0f + rnd() * 300.0f;
+				g.popTime = 0.0f;
+				g.frame = 0;
 				g.pos = gw.mousePosition();
 				g.maxLife = 10.0f + rnd() * 20.0f;
 				g.size = 1.0f + rnd() * 2.0f;
@@ -126,7 +132,18 @@ public:
 			}
 		}
 
-		if (gw.mouseHeld(3)) {
+		if (gw.mousePressed(3)) {
+			for (size_t i = 0; i < objects.size(); i++) {
+				auto& g = objects[i];
+				Vector2 v = (gw.mousePosition() - g.pos);
+				float gR = (g.size * circleScale) * tex.height() * 0.5f;
+				if (length(v) < gR) {
+					g.life = 0.2f;
+				}
+			}
+		}
+
+		if (gw.mouseHeld(2)) {
 			for (size_t i = 0; i < objects.size(); i++) {
 				auto&& g = objects[i];
 				Vector2 v = (gw.mousePosition() - g.pos);
@@ -157,8 +174,8 @@ public:
 				if (i == j) continue;
 
 				auto& h = objects[j];
-				float gR = (g.size * circleScale) * tex.width() * 0.5f;
-				float hR = (h.size * circleScale) * tex.width() * 0.5f;
+				float gR = (g.size * circleScale) * tex.height() * 0.5f;
+				float hR = (h.size * circleScale) * tex.height() * 0.5f;
 				float r = hR + gR;
 				Vector2 vec = g.pos - h.pos;
 				float d = lengthSqr(vec);
@@ -172,6 +189,10 @@ public:
 				}
 			}
 
+			if (g.life <= 0.2f) {
+				float t = 1.0f - (g.life / 0.2f);
+				g.frame = int(std::floor(t * 15.0f));
+			}
 			if (g.life <= 0.0f) {
 				rem.push_back(i);
 			}
