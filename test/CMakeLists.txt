@@ -7,7 +7,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_definitions(-DSDL_MAIN_HANDLED)
 
-file(GLOB_RECURSE SRC "*.cpp" "*.c")
+file(GLOB_RECURSE STB "stb/*.cpp")
 
-add_executable(${PROJECT_NAME} ${SRC})
-target_link_libraries(${PROJECT_NAME} PRIVATE gt)
+add_executable(bubbles "bubbles.cpp" ${STB})
+target_link_libraries(bubbles PRIVATE gt)
+
+add_executable(car "car.cpp" ${STB})
+target_link_libraries(car PRIVATE gt)

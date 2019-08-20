@@ -47,8 +47,6 @@ struct Object {
 	Vector2 pos, vel, acel;
 	Vector3 color;
 	float life, maxLife, size, dim;
-
-	float popTime;
 	int frame;
 };
 
@@ -108,7 +106,7 @@ public:
 	void update(GameWindow& gw, float dt) {
 		float fps = 1000.0f / gw.msPerFrame();
 		gw.title(
-			"Game Test | " + std::to_string(gw.msPerFrame()) +
+			"Bubbles | " + std::to_string(gw.msPerFrame()) +
 			" ms/frame | " + std::to_string(fps) + " FPS | " +
 			std::to_string(objects.size()) + " objects"
 		);
@@ -118,7 +116,6 @@ public:
 				Object g{};
 				float a = rnd() * Tau;
 				float f = 200.0f + rnd() * 300.0f;
-				g.popTime = 0.0f;
 				g.frame = 0;
 				g.pos = gw.mousePosition();
 				g.maxLife = 10.0f + rnd() * 20.0f;
